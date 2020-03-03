@@ -1,0 +1,480 @@
+2020-03-03T20:16:34Z TWL
+Below find a log of running tests for all test cases of 2020-03-20,
+
+         The last argument is the destination.  The rest are sources.
+
+         cases
+           1. special file types not being tested
+           2. multiple sources, destination is a file - gives an error
+           3. source does not exist, gives an error
+           4. single source specified..
+
+           4.1 source is a file..
+           4.1.1 destination does not exist, destination becomes copy of source file
+           4.1.2 destination is a file, it gets clobbered
+           4.1.3 destination is a directory, copy of source is put into it
+           closes 4.1 there are no more source is a file cases
+
+           4.2 source is a directory..
+           4.2.1 if the destination does not exist, destination tree becomes a copy of the source tree, new name
+           4.2.2 destination is a file - gives an error
+           4.2.3 destination is a directory ..
+           4.2.3.1 source has a path, only the dirname part of the path and its contents appears under the destination..
+           4.2.3.1.1 dest does not exist - result is a tree py of the dirname tree
+           4.2.3.1.2 dest does not exist - dirname tree appears under dest
+           4.2.3.2 source does not have a path, copy of source appears under the destination
+           closes 4.2 there are no more source is a directory cases
+
+           5. multiple source files specified ..
+           5.1 if the destination does not exist, it is created as a directory
+           5.2 source types may be mixed between directories and files
+           5.3 destination directory exists..
+           5.2.1 source type is a file, copy appears under the destination directory
+           5.2.2 source type is a directory tree, a copy with the same name appears under the destination directory
+           5.2.3 mix of the above
+           closes there are no more 'each source type' multiple source cases.
+
+
+--------------------------------------------------------------------------------
+2
+
+2020-03-03T19:14:12Z
+thomas_lynch@reasoning-technology-server-1§~/src§
+> touch dest
+
+2020-03-03T19:15:00Z
+thomas_lynch@reasoning-technology-server-1§~/src§
+> ./pcp a b c dest
+when copying multiple sources and the destination exists, it must be a directory
+
+--------------------------------------------------------------------------------
+4.1.1
+
+2020-03-03T19:18:25Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> cat << EOF > file
+>>hello!
+>>EOF
+
+2020-03-03T19:19:29Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ls
+cases.txt  dat	file  results
+
+2020-03-03T19:20:11Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ../pcp file new
+copy source file to a new file
+cat < file > new
+
+2020-03-03T19:20:36Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ls
+cases.txt  dat	file  new  results
+
+2020-03-03T19:20:39Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> cat new
+hello!
+
+--------------------------------------------------------------------------------
+4.1.2
+
+2020-03-03T19:23:03Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> cat > file1
+file1 contents
+
+2020-03-03T19:23:22Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> cat > file2
+file2 contents
+
+2020-03-03T19:23:30Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ../pcp file1 file2
+copy source file and clobber destination file
+cat < file1 > file2
+
+2020-03-03T19:23:39Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> cat file2
+file1 contents
+
+--------------------------------------------------------------------------------
+4.1.3
+
+2020-03-03T19:28:44Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ls
+cases.txt  results
+
+2020-03-03T19:28:50Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> cat > file1
+I am file1.
+
+2020-03-03T19:29:04Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> mkdir dst1
+
+2020-03-03T19:29:11Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ls
+cases.txt  dst1  file1	results
+
+2020-03-03T19:29:17Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ../pcp file1 dst1
+copy source file into destination directory
+cat < file1 > dst1/file1
+
+2020-03-03T19:29:27Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ls dst1
+file1
+
+2020-03-03T19:29:40Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ls
+cases.txt  dst1  file1	results
+
+2020-03-03T19:29:44Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> cat dst1/file1 
+I am file1.
+
+--------------------------------------------------------------------------------
+4.2.1
+
+2020-03-03T19:31:14Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> mkdir ftree1
+
+2020-03-03T19:31:50Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> cd ftree1/
+
+2020-03-03T19:32:07Z
+thomas_lynch@reasoning-technology-server-1§~/src/test/ftree1§
+> mkdir ftree1.1  ftree1.2
+
+2020-03-03T19:32:18Z
+thomas_lynch@reasoning-technology-server-1§~/src/test/ftree1§
+> cat >f1
+f1
+
+2020-03-03T19:32:26Z
+thomas_lynch@reasoning-technology-server-1§~/src/test/ftree1§
+> cat >f2
+f2
+
+2020-03-03T19:32:32Z
+thomas_lynch@reasoning-technology-server-1§~/src/test/ftree1§
+> cat >ftree1.1/f1.1
+f1.1
+
+2020-03-03T19:33:12Z
+thomas_lynch@reasoning-technology-server-1§~/src/test/ftree1§
+> cat >ftree1.1/f1.1.2
+f1.1.2
+
+2020-03-03T19:33:34Z
+thomas_lynch@reasoning-technology-server-1§~/src/test/ftree1§
+> cat > ftree1.2/f1.2
+f1.2
+
+2020-03-03T19:33:53Z
+thomas_lynch@reasoning-technology-server-1§~/src/test/ftree1§
+> cd ..
+
+2020-03-03T19:33:57Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ls
+cases.txt  ftree1  results
+
+2020-03-03T19:33:58Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ../pcp ftree1/ ftree1_copy
+copy source directory contents into new destination directory
+(cd ftree1/; tar cf - *)|(cd ftree1_copy; tar xf -)
+
+2020-03-03T19:34:27Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ls
+cases.txt  ftree1  ftree1_copy	results
+
+2020-03-03T19:34:42Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> diff -qr ftree1 ftree1_copy
+
+--------------------------------------------------------------------------------
+4.2.2
+
+continuing same directory as 4.2.1 
+
+2020-03-03T19:34:27Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ls
+cases.txt  ftree1  ftree1_copy	results
+
+2020-03-03T19:34:42Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> diff -qr ftree1 ftree1_copy
+
+2020-03-03T19:35:02Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ls
+cases.txt  ftree1  ftree1_copy	results
+
+2020-03-03T19:36:40Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> cat > file1
+file1
+
+2020-03-03T19:36:53Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ../pcp ftree1 file1
+source is a directory, but destination is a file
+
+2020-03-03T19:37:14Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> diff -qr ftree1 ftree1_copy
+
+2020-03-03T19:37:31Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> 
+--------------------------------------------------------------------------------
+4.2.3.1.1 & 4.2.3.1.2
+
+continuing same directory as 4.2.1
+
+2020-03-03T19:41:06Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ls
+cases.txt  ftree1  ftree1_copy	results
+
+2020-03-03T19:41:14Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ../pcp ftree1/ftree1.1 ftree1.1_copy
+copy source directory contents into new destination directory
+(cd ftree1/ftree1.1; tar cf - *)|(cd ftree1.1_copy; tar xf -)
+
+2020-03-03T19:41:52Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ls
+cases.txt  ftree1  ftree1.1_copy  ftree1_copy  results
+
+2020-03-03T19:42:04Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+>  diff -qr ftree1/ftree1.1 ftree1.1_copy
+
+2020-03-03T19:42:56Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+>  mkdir  dir1
+
+2020-03-03T19:45:54Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ../pcp ftree1/ftree1.1 dir1
+put copy of source'ftree1.1' located at 'ftree1' into destination
+(cd ftree1; tar cf - ftree1.1)|(cd dir1; tar xf -)
+
+2020-03-03T19:47:47Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ls 
+cases.txt  dir1  ftree1  ftree1.1_copy	ftree1_copy  results
+
+2020-03-03T19:48:04Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ls dir1
+ftree1.1
+
+2020-03-03T19:48:08Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> diff ftree1/ftree1.1 dir1/ftree1.1
+
+2020-03-03T19:48:29Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> 
+
+--------------------------------------------------------------------------------
+4.2.3.2
+
+2020-03-03T19:58:40Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ls
+cases.txt  ftree1  results
+
+2020-03-03T19:58:41Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ls -R ftree1/
+ftree1/:
+f1  f2	ftree1.1  ftree1.2
+
+ftree1/ftree1.1:
+f1.1  f1.1.2
+
+ftree1/ftree1.2:
+f1.2
+
+2020-03-03T19:58:49Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> mkdir ftree2
+
+2020-03-03T19:59:06Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ../pcp ftree1 ftree2
+put copy of source'ftree1' into destination
+tar cf - ftree1|(cd ftree2; tar xf -)
+
+2020-03-03T19:59:27Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ls -R ftree2
+ftree2:
+ftree1
+
+ftree2/ftree1:
+f1  f2	ftree1.1  ftree1.2
+
+ftree2/ftree1/ftree1.1:
+f1.1  f1.1.2
+
+ftree2/ftree1/ftree1.2:
+f1.2
+
+2020-03-03T19:59:45Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ../pcp ftree1 ftree2/ftree1/ftree1.2
+put copy of source'ftree1' into destination
+tar cf - ftree1|(cd ftree2/ftree1/ftree1.2; tar xf -)
+
+2020-03-03T20:00:31Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ls -R ftree2
+ftree2:
+ftree1
+
+ftree2/ftree1:
+f1  f2	ftree1.1  ftree1.2
+
+ftree2/ftree1/ftree1.1:
+f1.1  f1.1.2
+
+ftree2/ftree1/ftree1.2:
+f1.2  ftree1
+
+ftree2/ftree1/ftree1.2/ftree1:
+f1  f2	ftree1.1  ftree1.2
+
+ftree2/ftree1/ftree1.2/ftree1/ftree1.1:
+f1.1  f1.1.2
+
+ftree2/ftree1/ftree1.2/ftree1/ftree1.2:
+f1.2
+
+2020-03-03T20:00:39Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> 
+
+--------------------------------------------------------------------------------
+5.1 & 5.2
+
+
+2020-03-03T20:03:05Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ls -R ftree1
+ftree1:
+f1  f2	ftree1.1  ftree1.2
+
+ftree1/ftree1.1:
+f1.1  f1.1.2
+
+ftree1/ftree1.2:
+f1.2
+
+2020-03-03T20:03:14Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ../pcp ftree1/f1  ftree1 ftree1/ftree1.1/f1.1.2 ftree_new
+making currently non-existent destination directory
+put copy of source file 'f1' located at 'ftree1' into destination
+cat < ftree1/f1 > ftree_new/f1
+put copy of source'ftree1' into destination
+tar cf - ftree1|(cd ftree_new; tar xf -)
+put copy of source file 'f1.1.2' located at 'ftree1/ftree1.1' into destination
+cat < ftree1/ftree1.1/f1.1.2 > ftree_new/f1.1.2
+
+2020-03-03T20:04:24Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ls -R ftree_new
+ftree_new:
+f1  f1.1.2  ftree1
+
+ftree_new/ftree1:
+f1  f2	ftree1.1  ftree1.2
+
+ftree_new/ftree1/ftree1.1:
+f1.1  f1.1.2
+
+ftree_new/ftree1/ftree1.2:
+f1.2
+
+2020-03-03T20:05:17Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> 
+
+--------------------------------------------------------------------------------
+5.2.1 & 5.2.2 & 5.2.3
+
+
+2020-03-03T20:11:32Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ls -R ftree_new
+ftree_new:
+f1  f1.1.2  ftree1
+
+ftree_new/ftree1:
+f1  f2	ftree1.1  ftree1.2
+
+ftree_new/ftree1/ftree1.1:
+f1.1  f1.1.2
+
+ftree_new/ftree1/ftree1.2:
+f1.2
+
+2020-03-03T20:11:46Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ../pcp ftree1/f1  ftree1 ftree1/ftree1.1/f1.1.2 ftree_new/ftree1/ftree1.2
+put copy of source file 'f1' located at 'ftree1' into destination
+cat < ftree1/f1 > ftree_new/ftree1/ftree1.2/f1
+put copy of source'ftree1' into destination
+tar cf - ftree1|(cd ftree_new/ftree1/ftree1.2; tar xf -)
+put copy of source file 'f1.1.2' located at 'ftree1/ftree1.1' into destination
+cat < ftree1/ftree1.1/f1.1.2 > ftree_new/ftree1/ftree1.2/f1.1.2
+
+2020-03-03T20:12:34Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> ls -R ftree_new
+ftree_new:
+f1  f1.1.2  ftree1
+
+ftree_new/ftree1:
+f1  f2	ftree1.1  ftree1.2
+
+ftree_new/ftree1/ftree1.1:
+f1.1  f1.1.2
+
+ftree_new/ftree1/ftree1.2:
+f1  f1.1.2  f1.2  ftree1
+
+ftree_new/ftree1/ftree1.2/ftree1:
+f1  f2	ftree1.1  ftree1.2
+
+ftree_new/ftree1/ftree1.2/ftree1/ftree1.1:
+f1.1  f1.1.2
+
+ftree_new/ftree1/ftree1.2/ftree1/ftree1.2:
+f1.2
+
+2020-03-03T20:13:01Z
+thomas_lynch@reasoning-technology-server-1§~/src/test§
+> 
