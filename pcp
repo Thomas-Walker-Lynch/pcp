@@ -61,6 +61,11 @@ tar_file_path = os.path.join(gather_dir, "source.tar");
 
 if debug: print(sys.argv)
 
+if len(sys.argv) == 1:
+  print("pcp <source>* <target>")
+  print("  Sources may be files or directories. The target must be a directory, existing or to be created.")
+  sys.exit(1)
+
 if len(sys.argv) < 3:
   print("need at least one source argument and one dst_path argument")
   pcp_exit(1, gather_dir)
