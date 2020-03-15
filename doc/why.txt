@@ -1,0 +1,6 @@
+
+# acls may be used to override the users umask when creating a file with many programs,
+# but strangely not when a file is created using 'cp'.  With acls 'cp' acts more like 'cp
+# -p', the permission preserving version of cp.  So here is a script that may be used to
+# copy files into a project while respecting the project directory's acls.
+

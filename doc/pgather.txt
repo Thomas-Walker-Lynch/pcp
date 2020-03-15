@@ -1,0 +1,5 @@
+pgather  <gather_dir> <source>*
+ptarget  <gather_dir> <target>
+
+pgatheras
+ptargetas

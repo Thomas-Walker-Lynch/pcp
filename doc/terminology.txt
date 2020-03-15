@@ -1,0 +1,66 @@
+Concepts and Terminology
+
+  Trees are made of <em>nodes</em> and directional <em>arcs</em>. A directional arc is
+  said to start at a <em>parent</em> node and then lead to a <em>child</em> node.  There
+  is exactly one node in the tree which has no parent.  It is called the <em>root</em>
+  node.  All other nodes have exactly one parent. This property is what causes such a
+  graph to be a tree.  Nodes that have no children are said to be <em>leaf</em> nodes.  A
+  node is either a parent or a leaf.  Each parent, except for the root, is also a child.
+  Each parent may also be said to be the root of a <em>subtree</em>.
+
+  Conventionally we also call the root node the <em>top of the tree</em> and we say that
+  children are <em>under</em> their parents, thus to traverse the tree to a given node, we
+  start at the top and traverse downward.
+
+  A path through a tree is a sequence of arcs starting at the root node and leading to a
+  destination node. Starting at the root and then following each arc one by one causes us
+  to descend to ever lower levels of the tree until finally arriving at the destination
+  node.  Each node in the tree is the destination of exactly one path.
+
+  In filesystem trees parent nodes are called 'folders' or 'directories', while leaf
+  nodes are called 'files'.  Files may be of various types, some file are deemed to be
+  <em>special</em>.
+
+  For a filesystem tree the arcs are named.  Arc names do not need to be unique within
+  the whole of the tree, but the arcs stemming from any parent node to its immediate
+  children must have unique names within that context.  Thus in a filesystem tree we use
+  a sequence of arc names to identify each node.
+
+  In our filesystem the nodes themselves do not have names, or at least their names are
+  not exposed to users. Each node is identified solely by the sequences of arc names that
+  lead to it.  Such a sequence of names is said to be a <em>filesystem path</em>.  A file
+  system path differs from a tree path in that a filesystem path is a sequence of names,
+  while a tree path is a sequence of arcs.
+
+  When using a filesystem we conventionally have the concept of the "present working
+  directory", which is a default filesystem path.  A given filesystem path may then be
+  <em>relative</em>, which means that it is a suffix to the present working directory
+  path, or it may be <em>absolute</em>, which means it leads from the root of the file
+  system tree.
+
+  Specifically in the nomenclature used herein, we will call the last name to appear in a
+  a sequence of arc names, the <em>child_name</em>.  We then call the longest proper
+  prefix of an arc name sequence, the <em>parent_path</em>.  A parent_path uniquely
+  identifies a node in the filesystem tree.  The combination of a parent_path and a
+  child_name uniquely identifies a child node.  However, the child_name by itself can
+  be ambiguous.
+
+  From this point forward in this document and in the code comments, when I write
+  <em>path</em> without further qualification, I am referring to a filesystem path.
+
+  Symbolic links may be added to a filesystem tree.  A symbolic link is a special file
+  where the contents of that files gives the path to another filesystem object.  This
+  contained path is known as the <em>destination</em> of the link. The destination of a
+  link may be another link. Typically one expects that after following the one or more
+  links in a link chain, that one will arrive at a non-link filesystem object.  
+
+  Python's os.path.isdir and os.path.isfile will tell us about the destination a link
+  chain, rather than about the link objects themselves.
+
+  pcp is a program for copying files or subtrees.  It is given one or more source paths,
+  and one target path.  A source path may lead to a file or a directory.  If it is a
+  directory, then that directory is taken to be the parent of a subtree.  A target path
+  may lead to a directory, or it might be an imagined path that does not exist
+  yet.  If it does not exist, a directory will be created at that path.  The sources
+  are then copied into that directory.
+

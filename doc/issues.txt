@@ -1,0 +1,140 @@
+Issue of circular copies
+
+  Initially pcp was a simple script that piped through tar.  However there was an obnoxious
+  hazard.  It was possible to put the target in the source subtree and create an infinite
+  copy.  This could fill up the disk and lockup the system; thus make recovery difficult.
+  Detecting such a hazard requires traversing each source tree while looking
+  for a real pathname match with the target.  In addition, fundamentally, there is nothing
+  wrong with copying a source tree into itself. It just becomes a recursive structure, we
+  just need to control the recursion depth.
+  
+  We can deal with the recursion by first copying the sources to a temporary directory,
+  and then after they have all been gathered, to move the resulting directory to the
+  target.  However, we can not do a move into a directory with acls and expect the newly
+  moved files to respect the acls. An option would be to scan through the tree setting the
+  permissions correctly before moving it to the destination.  We would have to also scan
+  the target to find what those permissions should be.
+
+  We could copy twice, once into /tmp, then into the target, then delete the /tmp version.
+  This would require having enough empty disk space to handle two copies of the source
+  tree.  We will in fact use a variation of this algorithm. Yes this is a brutish solution.
+
+  The current pcp algorithm first 'gathers' the sources into tar files held in a temporary
+  directory.  Then in a second 'copy to target' step, it expands the tar files into the
+  target.  This is similar to piping through tar, which also required two tar calls. The
+  two steps may be separated and done at different times. Hence, the staging area may
+  be used for backing up a project.
+
+Issue of renaming sources
+
+   I would like to say that the target must be a directory, and that sources are never
+   renamed. However, this approach would prevent us from doing some simple operations.
+   For example, we would not be able to perform operations that remain within a given
+   working directory.  Take for example we have a filesystem object named 'a', and we
+   want a copy within our present working directory.  As the target must be a directory we
+   would type:
+
+      ex 0:
+            > pcp a .
+
+   This would gather 'a' into a temporary directory tar file, it would then expand that
+   tar file into the present working directory. The expand step would find a with the same
+   name that it wants to expand into, and find that the date is not older, and thus it
+   would do nothing.  Furthermore if a were a subtree, it would traverse that subtree and
+   find the same story for every single node in that subtree.
+
+   Conventionally we would do such a copy as: 
+      ex 1:
+            > pcp a z
+            > diff -r a z
+              no differences found
+
+    Where we intend to rename the copy to 'z'.  This gives us a new mode of operation, where
+    the source has a different child_name than the target.  But we only have one target.  What if
+    the user types:
+
+      ex 2:
+            > pcp a b c z
+            > diff -r a z/a
+              no differences found
+            > diff -r b z/b
+              no differences found
+            > diff -r c z/c
+              no differences found
+
+    In this case we understand the user to be telling us to create a new directory, and to
+    place copies of the source files in that directory.  In this case we use the source
+    child_name as the name for the copy.  We use the child name of the target to name the
+    new directory.  The target did not exist before, so we say that it was an imagined place
+    to put the new directory.
+
+    Then we would have three modes of copying:
+
+         1. There are one or more sources and the target is an existing directory.  We just
+         expand our gathered tar files into the target directory.
+
+         2. There are multiple sources, the target is imagined.  We then create the target
+         as a directory, and continue as per mode 1. Thus ex 2 above works as envisioned.
+
+         3. There is a single source and the target is imagined.
+
+           The temptation is to create exceptional behavior for this case, and to support
+           the concept that the child_name of the target is to become the child_name for
+           the copy.  The parent_path for the target would then be the directory that we
+           expand into.  Thus, pcp would then behave like cp for this common case.
+
+           But this would be our only example of a copy getting a different name than the source.
+           Rather than having a non-orthoganal feature, I'm going to instead suggest that
+           we support source to target renaming in general.
+
+     Accordingly,
+
+        ex 3:         
+            > pcp '/home/matilda/a|z' .
+            > diff -r a z
+              no differences found
+
+     So the vertical bar is a sort of piping notation, that says that the copy of '/home/matilda/a' is
+     to be copied into the present working directory while being given the childname 'z'.  Of course
+     I'm not going to implement this feature on the first version ;-)
+
+     Here ex 4, performs the same thing as apparently intended in example 1.
+
+        ex 4:
+            > pcp 'a|z' .
+            > diff -r a z
+              no differences found
+
+     In this case many of two of the sources take on new names, but one does not:
+
+            > pcp 'a|q' 'b' 'c|s' z
+            > diff -r a z/q
+              no differences found
+            > diff -r b z/b
+              no differences found
+            > diff -r c z/s
+              no differences found
+
+     .. actually, as just about any character can be in a file name, except perhaps for null and
+     slash, such a method for renaming source operands would alias against possible filenames.
+
+Issue of links and realname
+
+  I would like to filter the source arguments down to their real names so that I could
+  identify duplicates in the copy.  However, the child_names of the given sources matter
+  in both gathering and copying to the target.
+
+
+Issue of "." child_name
+
+   os.path.split will return "." as the child name if the path was specified as ".". 
+
+   Suppose the wryly user provides the path is "../../.".  This splits to:
+        parent_path = "../../"
+        child_name = "."
+
+   When the user makes . the directory name, then the contents of the source directory
+   should expand out as the contents of the target directory. This is not really a
+   special case as tar will accept . as source.
+
+

@@ -1,0 +1,127 @@
+
+The 'p' in 'pcp' stands for 'project'.  The command is 'project copy'.
+
+
+Source Limitations:
+
+  1. there must be at least one source path
+  2. source paths must exist in the filesystem before the copy starts
+
+Target limitations
+
+  1. there must be at least one target, it appears last on the argument list
+  2. if the target path is imagined, we create it
+
+
+Multiple commands point to the same program, argv[0] used to separate them.
+This is done so that the defined functions may be shared more simply.
+
+pcp <source>* target
+
+
+Algorithm
+
+  Setup tmp directory, gather sources into a tar file, expand the tar file at the target.
+
+  
+pcp options wish list
+
+  
+
+  seems we need commands pgather  and p2target that set options to make easier to
+  do this incrementally.  Perhaps pgatheras p2targetas that take argument
+  pairs for renaming.
+
+  .. options to provide the tar gather and the tar expand options?
+
+
+  -d
+  --dir        
+
+                  Specifies the gather directory. When not specified, pcp will
+                  gather the source files into a temporary directory of its choosing.
+
+  -i              
+  --incremental
+
+                 The default behavior is to delete the whole of the gather directory after
+                 the copy to target step has succeeded.  With this option, each tar file
+                 is individually deleted after it has been successfuly expanded into the
+                 target.
+
+  -k <value>
+  -keep <value>
+
+               .. might be better to give access to tar options for both the gather
+               and the expansion and let the user override the defaults if they want to.
+
+                Sets the clobber behavior.
+
+                    always          if a file exists, don't overwrite it
+                    always-source   when gathering, "
+                    always-target   when copying to target, "
+
+                    never          never keep existing files if another file is proposed
+                    never-source   when gathering, "
+                    never-target   when copying to target, "
+
+                    newer           keep the newest file
+                    newer-source    when gathering files, "
+                    newer-target    when copying to target, "
+
+                 With 'always' clobbering files that come later in the src argument list
+                 will clobber those that are already gathered or copied to the target.
+
+                 'always' is taken as the value if no value is given.
+                 'never' is the default if the option is not specified
+
+                 This option may appear more than once.  Later values clobber earlier ones ;-)
+
+  -n             
+  --no-delete   
+
+                 The tar files in the gather directory are not deleted after being expanded
+                 out at the target.  This option will override the --incremental option.
+                 This options makes it possible to create multiple copies by running pcp
+                 repeatedly with the --target-only option.
+  -l
+  --last
+
+                  Options come before arguments.  This may only occur as the last option.
+                  This is useful if an argument happens to start with a dash. It is a
+                  good practice to include it in scripts.
+
+  -s
+  --source-only  
+
+                  All command arguments are interpreted as sources. The sources are
+                  gathered, but are not copied to the target. --source-only commands may
+                  be run multiple times before running a default pcp command or a
+                  --disperse-only command.  The command prints the name of the temporary
+                  directory used.
+
+  -t
+  --target-only 
+
+                  Requires that --dir also be specified. There may only be one argument.
+                  The tar files in the gather directory are expanded out at the target.
+                  
+  -x <pattern>
+  --exclude <pattner>
+
+                  files to exclude from the copy
+
+
+  -z
+  --compress
+
+                  Make compressed tar files.
+
+  
+  
+
+
+
+
+
+
