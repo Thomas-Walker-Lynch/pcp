@@ -1,137 +1,120 @@
 #!/usr/bin/python3
-
-# add case of copying multiple things the target must be a directory
-
-# acls accept the source permissions of copied filed.  This makes it impossible to copy
-# files to a project.  Here is a replacement for cp.  At the time of this writing it
-# doesn't take any options.
+# copies one or more sources to a target
+# pcp <source>* <target>
+#
 
 import sys
 import os
+import tempfile
+import shutil
+import subprocess
 
 debug=True
-return_value = 0;
+
+#----------------------------------------
+# utility functions
 
 def perror(*args, **kwargs):
-    print(*args, file=sys.stderr, **kwargs)
-    
+  print(*args, file=sys.stderr, **kwargs)
+
 def run( command ):
-  if debug:
-    print(command)
-    return_value = os.system(command)
-  if return_value != 0:
-    perror("command failed: "+command)
+  if debug: print(command)
+  status = subprocess.run(
+    command
+    ,stderr=subprocess.PIPE
+    ,universal_newlines=True
+  );
+  if status.returncode != 0:
+    if status.stderr:
+      perror(command.append(status.stderr))
+    else:
+      perror(command.append("failed"))
+  return status.returncode
+
+# def run( command ):
+#   if debug:
+#     print(command)
+#     return_value = os.system(command)
+#   if return_value != 0:
+#     perror("command failed: "+command)
+
+def pcp_exit( code, gather_dir ):
+  if not debug and gather_dir: shutil.rmtree(gather_dir)
+  sys.exit(code)
+
+
+#----------------------------------------
+# options - punt
+
+keep_source = 'never'
+keep_target = 'never'
+no_delete = False;
+incremental_delete = not no_delete and False;
+do_gather = True;
+do_copy_to_target = True;
+
+gather_dir = tempfile.mkdtemp()
+tar_file_path = os.path.join(gather_dir, "source.tar");
+
+#----------------------------------------
+# argument desctructuring and characterization
+
+if debug: print(sys.argv)
 
 if len(sys.argv) < 3:
-  print("need at least on source argument and one destination argument")
-  sys.exit(1)
+  print("need at least one source argument and one dst_path argument")
+  pcp_exit(1, gather_dir)
 
 sources = sys.argv[1:-1]
-destination = sys.argv[-1]
+target = sys.argv[-1] 
 
-if os.path.exists(destination) and not os.path.isfile(destination) and not os.path.isdir(destination):
-  perror("destination is neither a file nor a directory so I don't know how to copy it")
-  exit(1)
-
-if len(sources) > 1  and os.path.exists(destination) and not os.path.isdir(destination):
-  perror("when copying multiple sources and the destination exists, it must be a directory");
-  exit(1)
-
-if len(sources) == 1:
-  src = sources[0]
-  if not os.path.exists(src):
-    perror("can't find source file, exiting")
-    exit(1)
-  if not os.path.isfile(src) and not os.path.isdir(src):
-    perror("source is neither a file nor a directory so I don't know how to copy it")
-    exit(1)
-  if os.path.isfile(src):
-    if not os.path.exists(destination):
-      if debug:
-        print("copy source file to a new file")
-      run("cat < "+src+" > "+destination)
-      sys.exit(return_value)
-    if os.path.isfile(destination):
-      if debug:
-        print("copy source file and clobber destination file")
-      run("cat < "+src+" > "+destination)
-      sys.exit(return_value)
-    if os.path.isdir(destination):
-      if debug:
-        print("copy source file into destination directory")
-      run("cat < "+src+" > "+destination+"/"+src)
-      sys.exit(return_value)
-  #at this point src must be a directory
-  if not os.path.exists(destination):
-    os.system("mkdir -p " + destination)
-    if debug:
-      print("copy source directory contents into new destination directory")
-    src_clause = "(cd "+src+"; tar cf - *)"  # copy the contents of src/
-    dst_clause = "(cd "+destination+"; tar xf -)" # expand into the new destination/
-    run( src_clause+"|"+dst_clause )
-    sys.exit(return_value)
-  if os.path.isfile(destination):
-    perror("source is a directory, but destination is a file")
-    sys.exit(1)
-  if os.path.isdir(destination):
-    src_path,src_item = os.path.split(src)
-    if src_path:
-      if debug:
-        print("put copy of source'"+src_item+"' located at '"+src_path+"' into destination")
-      src_clause = "(cd "+src_path+"; tar cf - "+src_item+")"  # copy the src directory
-    else:
-      if debug:
-        print("put copy of source'"+src+"' into destination")
-      src_clause = "tar cf - "+src 
-    dst_clause = "(cd "+destination+"; tar xf -)" # expand into the new destination/
-    run(src_clause+"|"+dst_clause)
-    sys.exit(return_value)
+target_exists = os.path.exists(target)
+target_is_dir = os.path.isdir(target)
 
 
-# at this point we know there are multiple sources
-# we also know that the destination must be a directory to put them in
-if not os.path.exists(destination):
-  if debug:
-    print("making currently non-existent destination directory")
-    rv = os.system("mkdir -p " + destination)
-    if rv:
-      perror("could not make destination directory")
-      sys.exit(rv)
 
-# the destination is known to be an existing directory
-# each src may be either a file or directory
-# our goal is to put a copy of each src into the destination directory
+#----------------------------------------
+# argument guard tests
+
+err_cnt = 0;
+
+valid_sources = []
 for src in sources:
+  if not os.path.exists(src):
+    perror("source does not exist, skipping: "+src)
+  else:
+    valid_sources.append(src)
 
-  is_file = os.path.isfile(src)
-  is_dir = os.path.isdir(src)
+if len(valid_sources) == 0:
+  perror("No valid sources found.")
+  err_cnt += 1
 
-  if is_file:
-    src_path,src_item = os.path.split(src)
-    if src_path:
-      if debug:
-        print("put copy of source file '"+src_item+"' located at '"+src_path+"' into destination")
-      run("cat < "+src+" > "+destination+"/"+src_item)
-    else:
-      if debug:
-        print("put copy of source file'"+src+"' into destination")
-      run("cat < "+src+" > "+destination+"/"+src)
-    continue
+if target_exists and not target_is_dir:
+  perror("target exists, but it is not a directory: "+target)
+  err_cnt += 1
 
-  if is_dir:
-    src_path,src_item = os.path.split(src)
-    if src_path:
-      if debug:
-        print("put copy of source'"+src_item+"' located at '"+src_path+"' into destination")
-      src_clause = "(cd "+src_path+"; tar cf - src_item)"  # copy the src directory
-    else:
-      if debug:
-        print("put copy of source'"+src+"' into destination")
-      src_clause = "tar cf - "+src 
-    dst_clause = "(cd "+destination+"; tar xf -)" # expand into the new destination/
-    run(src_clause+"|"+dst_clause)
-    continue
+if not os.path.exists(target):
+  rv = run(["mkdir", "-p", target])
+  if rv:
+    perror("could not make target directory")
+    err_cnt += 1
 
-  perror("src '"+src+"' is neither a directory nor a file, skipping it")
-  
-sys.exit(return_value)
+if err_cnt > 0: pcp_exit(1, gather_dir)
+sources = valid_sources
+
+#----------------------------------------
+def gather(sources, tar_file_path):
+  if not os.path.exists(tar_file_path):
+    run(["tar", "cf", tar_file_path, "-T", "/dev/null"])
+  for src in sources:
+    parent_path, child_name = os.path.split(src)
+    if not parent_path: parent_path = "."
+    run(["tar", "-C", parent_path, "-r", "-f",  tar_file_path, child_name])
+    
+#----------------------------------------
+def copy_to_target(tar_file_path, target):
+  run(["tar", "--no-overwrite-dir", "--dereference", "-C", target, "-x", "-f",  tar_file_path])
+
+gather(sources, tar_file_path)
+copy_to_target(tar_file_path, target)
+pcp_exit(0, gather_dir)

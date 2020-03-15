@@ -25,7 +25,7 @@ Below find a log of running tests for all test cases of 2020-03-20,
            4.2.3.2 source does not have a path, copy of source appears under the destination
            closes 4.2 there are no more source is a directory cases
 
-           5. multiple source files specified ..
+           5. multiple source file system objects specified ..
            5.1 if the destination does not exist, it is created as a directory
            5.2 source types may be mixed between directories and files
            5.3 destination directory exists..

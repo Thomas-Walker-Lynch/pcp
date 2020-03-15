@@ -1,0 +1,187 @@
+#!/usr/bin/python3
+# copies one or more sources to a target
+# pcp <source>* <target>
+#
+# Would like to have a -sample option that first copies to /tmp, so that we could literally copy a tree
+# into itself.  However, we can't use move, as that would break facls permisisons. The whole point of
+# this program is to not break facl permissions.
+#
+# Would be nice to instead fix cp.  Let the current behavior of cp be cp -p.
+#
+
+
+import sys
+import os
+
+debug=True
+return_value = 0;
+
+#----------------------------------------
+# utility functions
+
+def perror(*args, **kwargs):
+  print(*args, file=sys.stderr, **kwargs)
+
+def run( command ):
+  if debug:
+    print(command)
+    return_value = os.system(command)
+  if return_value != 0:
+    perror("command failed: "+command)
+
+#----------------------------------------
+# argument desctructuring and characterization
+
+if debug: print(sys.argv)
+
+if len(sys.argv) < 3:
+  print("need at least one source argument and one dst_path argument")
+  sys.exit(1)
+
+sources = sys.argv[1:-1]
+target = sys.argv[-1] 
+
+one_source = len(sources) == 1
+multiple_sources = not one_source # because of argument count guard
+if one_source: source = sources[0]
+one_source_file = one_source and os.path.isfile(source)
+one_source_dir = one_source and os.path.isdir(source)
+
+target_exists = os.path.exists(target)
+target_is_imagined = not target_exists
+target_is_file = target_exists and os.path.isfile(target)
+target_is_dir = target_exists and os.path.isdir(target)
+
+#----------------------------------------
+# guards
+err_cnt = 0;
+
+# sources must exist, and not be the same as the target
+for src in sources:
+  if not os.path.exists(src):
+    perror("source does not exist: "+src)
+    err_cnt+=1
+  elif not os.path.isfile(src) and not os.path.isdir(src):
+    perror("Source is neither a file nor a directory, don't know how to copy it: "+src)
+    err_cnt+=1
+  elif target_exists and os.path.samefile(src, target):
+    perror("source is identical to target: "+src)
+    err_cnt+=1
+
+# imagined target must have existing proper prefix
+if target_is_imagined:
+  proper_prefix = os.path.dirname(target)
+  if not os.path.exists(proper_prefix):
+    perror("dirname of target does not exist: "+target)
+    err_cnt+=1
+   
+# if target is a file, there may only be one source, and that source must be a file
+if target_is_file:
+  if not one_source:
+    perror("can't copy multiple sources to a file: "+target)
+    err_cnt+=1
+  if not one_source_dir:
+    perror("cannot copy directory to a file: "+source)
+    err_cnt+=1
+
+if err_cnt > 0: sys.exit(1)
+
+#----------------------------------------
+# cases characterization
+
+target_is_the_copy = one_source_file and (target_imagined or target_is_file)
+target_holds_the_copies = multiple_sources or (one_source_dir and target_is_dir)
+
+copy_file = one_source_file and (target_is_file or target_is_imagined)
+copy_directory = one_source_dir and target_is_imagined
+copy_sources_into_target_dir = target_holds_the_copies
+
+must_create_target_dir = target_is_imagined and target_holds_the_copies
+
+#----------------------------------------
+# clobber detection
+
+if target_exists && copy_file:
+  perror("copy would clobber target");
+  sys.exit(1)
+if target_holds_the_copies:
+  copy_names = {}
+  clobber_cnt = 0
+  for src in sources:
+    src_name = os.path.basename(src)
+    if os.path.isdir(src_name)
+    path_to_copy = os.path.join(target, src_name)
+    if os.path.exists(path_to_copy) and not os.path.isdir(path_to_copy):
+      perror("copy of src '"+src+"' would clobber target '"+path_to_copy+"'");
+      clobber_cnt+=1
+    other_source_same_name = copies_names[src_name]
+    if other_source_same_name :
+      perror("copy of src '"+src+"' would clobber copy of '"+other_source_same_name+"'");
+      clobber_cnt+=1
+    elif 
+      copy_names[src_name] = src
+  if clobber_cnt > 0:
+    sys.exit(1)
+
+#----------------------------------------
+# process cases
+
+if copy_file:
+  run("cat < "+source+" > "+target)
+  sys.exit(return_value)
+
+if must_create_target_dir:
+  rv = os.system("mkdir -p " + target)
+  if rv:
+    perror("could not make target directory")
+    sys.exit(rv)
+
+if copy_directory:
+  src_clause = "(cd "+source+"; tar cf - *)"  # copy the contents of src/
+  dst_clause = "(cd "+target+"; tar xf -)" # expand into the new dst_path/
+  run( src_clause+"|"+dst_clause )
+  sys.exit(return_value)
+
+if target_holds_the_copies:
+
+  for src in sources:
+    src_is_file = os.path.isfile(src)
+    src_is_dir = os.path.isdir(src)
+    src_dir_part,src_name_part = os.path.split(src)
+
+    path_to_copy = os.path.join(target, src_name_part)
+    path_to_copy_exists = os.path.exists(path_to_copy)
+    path_to_copy_imagined = not path_to_copy_exists
+
+    if src_is_file:
+      run("cat < "+src+" > "+path_to_copy)
+      continue
+
+    if src_is_dir:
+      if os.path.exists( path_to_copy ):
+        if(os.path.isfile( path_to_copy ):
+           perror("clobber case found after clobber test, skipping: '"+src+"'")
+           continue
+      else
+        rv = os.system("mkdir -p " + path_to_copy)
+        if rv:
+          perror("could not make target directory")
+          sys.exit(rv)
+      if src_dir_part:
+        src_clause = "(cd "+src_dir_part+"; tar cf - src_name_part)"  # copy the src directory
+      else:
+        src_clause = "tar cf - "+src_name_part 
+      dst_clause = "(cd "+path_to_copy+"; tar xf -)" # expand into the new path_to_copy/
+      run(src_clause+"|"+dst_clause)
+      continue
+
+    # I think in Python everything is a file or dir, but just in case
+    perror("src '"+src_path+"' is neither a directory nor a file, skipping it")
+
+  sys.exit(return_value)
+
+perror("unrecognized copy case, copy not performed")
+sys.exit(1)
+
+  
+
